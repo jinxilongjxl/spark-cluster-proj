@@ -59,7 +59,7 @@ export PATH=\$PATH:\$SPARK_HOME/bin:\$SPARK_HOME/sbin
 EOF
 "
 
-# 5. 配置Spark
+# 5. 配置spark-env.sh（修复路径错误）
 echo "步骤5：配置spark-env.sh"
 su - spark -c "
   cp \$SPARK_HOME/conf/spark-env.sh.template \$SPARK_HOME/conf/spark-env.sh

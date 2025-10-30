@@ -59,9 +59,10 @@ export PATH=\$PATH:\$SPARK_HOME/bin:\$SPARK_HOME/sbin
 EOF
 "
 
-# 5. 配置Spark
+# 5. 配置spark-env.sh（修复路径错误）
 echo "步骤5：配置spark-env.sh"
 su - spark -c "
+  # 正确引用SPARK_HOME的conf目录
   cp \$SPARK_HOME/conf/spark-env.sh.template \$SPARK_HOME/conf/spark-env.sh
   cat >> \$SPARK_HOME/conf/spark-env.sh << 'EOF'
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
