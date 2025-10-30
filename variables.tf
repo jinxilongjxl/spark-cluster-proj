@@ -36,5 +36,5 @@ variable "worker_count" {
 variable "local_ssh_public_key_path" {
   description = "本地 SSH 公钥路径（用于你登录集群）"
   type        = string
-  default     = "~/.ssh/id_rsa.pub"  # 请替换为实际路径
+  default     = "/home/g18862805171/.ssh/id_rsa.pub"  # Cloud Shell 路径
 }
