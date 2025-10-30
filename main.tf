@@ -39,6 +39,7 @@ resource "google_compute_instance" "spark_master" {
   # 注入用户SSH公钥（用于登录spark用户）
   metadata = {
     ssh-keys = "spark:${local.ssh_public_key}"
+    master_ip = google_compute_instance.spark_master.network_interface.0.network_ip  # 内网 IP（集群内通信更稳定）
   }
 
   metadata_startup_script = file("${path.module}/startup/install-spark-master.sh")
