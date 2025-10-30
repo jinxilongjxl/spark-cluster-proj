@@ -82,4 +82,18 @@ su - spark -c "
   chmod 600 ~/.ssh/authorized_keys
 "
 
-echo "===== Spark Worker安装完成 ====="
+# 7. 启动Spark Worker进程
+echo "步骤7：启动Spark Worker"
+su - spark -c "
+  # 获取Master节点IP
+  MASTER_IP=\$(nslookup spark-master | grep 'Address: ' | tail -n 1 | awk '{print \$2}')
+  if [ -z \"\$MASTER_IP\" ]; then
+    echo '❌ 无法解析spark-master的IP，请检查DNS或手动指定Master IP'
+    exit 1
+  fi
+  echo '🔗 连接到Master节点：\$MASTER_IP:7077'
+  \$SPARK_HOME/sbin/start-worker.sh spark://\$MASTER_IP:7077
+  echo '✅ Spark Worker启动命令已执行，可通过jps或日志检查进程状态'
+"
+
+echo "===== Spark Worker安装及启动完成 ====="
