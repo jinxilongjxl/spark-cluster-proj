@@ -3,21 +3,16 @@ output "spark_master_external_ip" {
   value       = google_compute_instance.spark_master.network_interface[0].access_config[0].nat_ip
 }
 
-output "ssh_master_command" {
-  description = "登录 Master 节点的 SSH 命令（默认用户为 debian）"
-  value       = "ssh debian@${google_compute_instance.spark_master.network_interface[0].access_config[0].nat_ip}"
+output "ssh_spark_master_command" {
+  description = "使用 spark 用户免密登录 Master 节点的 SSH 命令"
+  value       = "ssh spark@${google_compute_instance.spark_master.network_interface[0].access_config[0].nat_ip}"
 }
 
-output "spark_worker_external_ips" {
-  description = "所有 Worker 节点的外部 IP 地址"
-  value       = [for worker in google_compute_instance.spark_worker : worker.network_interface[0].access_config[0].nat_ip]
-}
-
-output "ssh_worker_commands" {
-  description = "登录各 Worker 节点的 SSH 命令（默认用户为 debian）"
+output "ssh_spark_worker_commands" {
+  description = "使用 spark 用户免密登录各 Worker 节点的 SSH 命令"
   value = [
     for idx, worker in google_compute_instance.spark_worker :
-    "ssh debian@${worker.network_interface[0].access_config[0].nat_ip}  # Worker ${idx}"
+    "ssh spark@${worker.network_interface[0].access_config[0].nat_ip}  # Worker ${idx + 1}"
   ]
 }
 
