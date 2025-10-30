@@ -39,7 +39,7 @@ resource "google_compute_instance" "spark_master" {
   # 注入用户SSH公钥（用于登录spark用户）
   metadata = {
     ssh-keys = "spark:${local.ssh_public_key}"
-    master_ip = google_compute_instance.spark_master.network_interface.0.network_ip  # 内网 IP（集群内通信更稳定）
+    
   }
 
   metadata_startup_script = file("${path.module}/startup/install-spark-master.sh")
@@ -65,6 +65,11 @@ resource "google_compute_instance" "spark_worker" {
     network    = google_compute_network.spark_vpc.id
     subnetwork = google_compute_subnetwork.spark_subnet.id
     access_config {}
+    # 关键：通过 metadata 传递 Master 节点的内网 IP（推荐）或公网 IP
+    metadata = {
+      master_ip = google_compute_instance.spark_master.network_interface.0.network_ip  # 内网 IP（集群内通信更稳定）
+      # 若内网不通，可替换为：google_compute_instance.spark_master.network_interface.0.access_config.0.nat_ip
+    }    
   }
 
   metadata_startup_script = file("${path.module}/startup/install-spark-worker.sh")
