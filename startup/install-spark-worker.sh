@@ -65,9 +65,14 @@ EOF
   source ~/.bashrc
 "
 
-# 5. 强制添加Master节点的hosts映射（解决DNS解析失败）
+# 步骤5：添加Master节点Hosts映射
 echo "步骤5：添加Master节点Hosts映射"
-MASTER_IP=$(gcloud compute instances describe spark-master --zone=us-central1-a --format="value(networkInterfaces[0].accessConfigs[0].natIP)")
+# 尝试通过内部DNS解析Master IP
+MASTER_IP=$(nslookup spark-master | grep 'Address: ' | tail -n 1 | awk '{print $2}')
+if [ -z "$MASTER_IP" ]; then
+  echo "❌ 内部DNS解析失败，手动指定Master IP（从Terraform输出或GCP控制台获取）"
+  MASTER_IP="你的Master节点公网IP"  # 替换为实际IP
+fi
 echo "$MASTER_IP  spark-master" | sudo tee -a /etc/hosts
 echo "✅ Master节点Hosts映射添加完成：$MASTER_IP  spark-master"
 
