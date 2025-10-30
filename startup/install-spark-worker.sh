@@ -105,7 +105,7 @@ echo "步骤8：启动Spark Worker"
 su - spark -c "
   source ~/.bashrc  # 再次加载环境变量确保生效
   echo '🔗 连接Master：$MASTER_IP:7077'
-  \$SPARK_HOME/sbin/start-worker.sh spark://$MASTER_IP:7077
+  /home/spark/spark/sbin/start-worker.sh spark://$MASTER_IP:7077
   # 验证进程是否启动
   if jps | grep -q Worker; then
     echo '✅ Worker进程启动成功'
