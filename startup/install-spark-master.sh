@@ -16,19 +16,18 @@ echo "步骤2：创建spark用户"
 id spark &>/dev/null || useradd -m -s /bin/bash spark
 echo "spark用户ID：$(id -u spark)"
 
-# 3. 安装Spark 3.4.1（显示进度条，禁用安静模式）
-echo "步骤3：安装Spark 3.4.1"
+# 3. 安装Spark 3.5.7（显示进度条，禁用安静模式）
+echo "步骤3：安装Spark 3.5.7"
 SPARK_HOME="/home/spark/spark"
-SPARK_TAR="spark-3.4.1-bin-hadoop3.tgz"
-SPARK_URL="https://dlcdn.apache.org/spark/spark-3.4.1/$SPARK_TAR"
+SPARK_TAR="spark-3.5.7-bin-hadoop3.tgz"
+SPARK_URL="https://dlcdn.apache.org/spark/spark-3.5.7/$SPARK_TAR"
 # 备用源（国内加速）
-BACKUP_URL="https://mirrors.aliyun.com/apache/spark/spark-3.4.1/$SPARK_TAR"
+BACKUP_URL="https://mirrors.aliyun.com/apache/spark/spark-3.5.7/$SPARK_TAR"
 
 if [ ! -d "$SPARK_HOME" ]; then
   su - spark -c "
     cd /home/spark
     echo '📥 从主源下载Spark（显示进度）...'
-    # 关键：--show-progress 显示进度条，移除 -q（安静模式），保留重试机制
     if ! wget --show-progress --retry-connrefused --waitretry=3 --read-timeout=30 --timeout=15 -t 5 $SPARK_URL; then
       echo '❌ 主源下载失败，切换到备用源...'
       if ! wget --show-progress --retry-connrefused --waitretry=3 --read-timeout=30 --timeout=15 -t 5 $BACKUP_URL; then
@@ -41,7 +40,7 @@ if [ ! -d "$SPARK_HOME" ]; then
       echo '❌ 解压失败，安装包可能损坏'
       exit 1
     fi
-    mv spark-3.4.1-bin-hadoop3 spark
+    mv spark-3.5.7-bin-hadoop3 spark
     rm -f $SPARK_TAR  # 清理安装包
     echo '✅ Spark安装成功'
   "
