@@ -1,87 +1,69 @@
 #!/bin/bash
-set -e  
-exec > /var/log/spark-master-install.log 2>&1
+set -e
+exec > /var/log/spark-master-install.log 2>&1  # 日志输出到文件
 
-echo "=============================="
-echo "🚀 Starting Spark Master Installation"
-echo "=============================="
+echo "===== 开始安装Spark Master ====="
 
-# 步骤1：更新系统包
-echo "🔧 Step 1: Updating system packages..."
+# 1. 安装依赖
+echo "步骤1：安装Java和SSH"
 apt update -y
-apt upgrade -y
-echo "✅ System packages updated"
+apt install -y openjdk-11-jdk openssh-server
+systemctl enable --now ssh  # 确保SSH服务启动
+echo "Java版本：$(java -version 2>&1 | head -1)"
 
-# 步骤2：安装 Java + 依赖
-echo "🔧 Step 2: Installing OpenJDK 11..."
-apt install -y openjdk-11-jdk
-echo "✅ Java installed: $(java -version 2>&1 | head -1)"
-
-# 步骤3：创建 spark 用户
-echo "👤 Step 3: Creating spark user..."
+# 2. 创建spark用户
+echo "步骤2：创建spark用户"
 id spark &>/dev/null || useradd -m -s /bin/bash spark
-echo "✅ spark user created"
+echo "spark用户ID：$(id -u spark)"
 
-# 步骤4：安装 Spark
-echo "📦 Step 4: Installing Spark 3.4.1..."
+# 3. 安装Spark
+echo "步骤3：安装Spark 3.4.1"
 SPARK_HOME="/home/spark/spark"
 if [ ! -d "$SPARK_HOME" ]; then
   su - spark -c "
-    cd /home/spark
-    echo '📥 Downloading Spark...'
-    wget -q https://dlcdn.apache.org/spark/spark-3.4.1/spark-3.4.1-bin-hadoop3.tgz || exit 1
-    echo '🔍 Extracting Spark...'
-    tar -xzf spark-3.4.1-bin-hadoop3.tgz || exit 1
+    wget -q https://dlcdn.apache.org/spark/spark-3.4.1/spark-3.4.1-bin-hadoop3.tgz
+    tar -xzf spark-3.4.1-bin-hadoop3.tgz
     mv spark-3.4.1-bin-hadoop3 spark
-    echo '✅ Spark installed successfully.'
+    rm spark-3.4.1-bin-hadoop3.tgz
   "
-else
-  echo "✅ Spark already installed"
 fi
+chown -R spark:spark /home/spark/spark
 
-# 步骤5：配置环境变量（并修复权限）
-echo "⚙️ Step 5: Configuring environment variables..."
-cat > /home/spark/.bashrc << 'EOF'
+# 4. 配置环境变量
+echo "步骤4：配置环境变量"
+su - spark -c "
+  cat >> ~/.bashrc << 'EOF'
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export SPARK_HOME=/home/spark/spark
-export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+export PATH=\$PATH:\$SPARK_HOME/bin:\$SPARK_HOME/sbin
 EOF
-chown spark:spark /home/spark/.bashrc  # 修复所有者
-echo "✅ .bashrc configured"
+"
 
-# 步骤6：配置 spark-env.sh（并修复权限）
-echo "⚙️ Step 6: Configuring spark-env.sh..."
-cat >> $SPARK_HOME/conf/spark-env.sh << 'EOF'
+# 5. 配置Spark
+echo "步骤5：配置spark-env.sh"
+su - spark -c "
+  cp \$SPARK_HOME/conf/spark-env.sh.template \$SPARK_HOME/conf/spark-env.sh
+  cat >> \$SPARK_HOME/conf/spark-env.sh << 'EOF'
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-export SPARK_MASTER_HOST=$(hostname -i)
+export SPARK_MASTER_HOST=\$(hostname -i)
 export SPARK_MASTER_PORT=7077
 export SPARK_WORKER_MEMORY=2g
 export SPARK_WORKER_CORES=1
 EOF
-chown spark:spark $SPARK_HOME/conf/spark-env.sh  # 修复权限
-echo "✅ spark-env.sh updated"
-
-# 步骤7：生成 spark 用户的 SSH 密钥（用于免密登录）
-echo "🔑 Step 7: Generating SSH key for spark user..."
-su - spark -c "
-  echo 'Generating SSH key pair...'
-  ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa -q  # 无密码生成密钥
-  # 检查公钥是否生成成功
-  if [ ! -f ~/.ssh/id_rsa.pub ]; then
-    echo '❌ Failed to generate SSH public key'
-    exit 1  # 生成失败则脚本退出
-  fi
-  chmod 700 ~/.ssh
-  cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-  chmod 600 ~/.ssh/authorized_keys
-  echo '✅ SSH key generated for localhost'
 "
 
-# 步骤8：启动 Spark Master（以 spark 用户运行）
-echo "🚀 Step 8: Starting Spark Master..."
-su - spark -c "$SPARK_HOME/sbin/start-master.sh"
-echo "✅ Spark Master started"
+# 6. 配置免密登录（本地）
+echo "步骤6：生成SSH密钥"
+su - spark -c "
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+  ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa -q  # 无密码密钥
+  cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+  chmod 600 ~/.ssh/authorized_keys
+"
 
-echo "=============================="
-echo "🎉 Spark Master Installation Completed!"
-echo "=============================="
+# 7. 启动Master
+echo "步骤7：启动Spark Master"
+su - spark -c "$SPARK_HOME/sbin/start-master.sh"
+
+echo "===== Spark Master安装完成 ====="
