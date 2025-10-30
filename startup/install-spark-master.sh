@@ -14,16 +14,26 @@ sudo apt-get install openjdk-11-jdk -y
 echo "Java 版本："
 java -version
 
-# 步骤3：下载并解压 Spark
-echo "步骤3：下载并解压 Spark"
+# 步骤3：创建 spark 用户（专用用户运行服务）
+echo "步骤3：创建 spark 用户"
+sudo useradd -m -s /bin/bash spark  # -m 创建家目录，-s 指定shell
+echo "spark 用户创建完成，ID：$(id -u spark)"
+
+# 步骤4：下载并解压 Spark
+echo "步骤4：下载并解压 Spark"
 SPARK_VERSION="3.4.1"
 HADOOP_VERSION="3.3"
 wget https://dlcdn.apache.org/spark/spark-$SPARK_VERSION/spark-$SPARK_VERSION-bin-hadoop$HADOOP_VERSION.tgz -P /tmp
 sudo tar -xzf /tmp/spark-$SPARK_VERSION-bin-hadoop$HADOOP_VERSION.tgz -C /opt
 sudo ln -s /opt/spark-$SPARK_VERSION-bin-hadoop$HADOOP_VERSION /opt/spark
 
-# 步骤4：配置环境变量
-echo "步骤4：配置环境变量"
+# 步骤5：修改 Spark 目录权限（归属 spark 用户）
+echo "步骤5：修改 Spark 目录权限"
+sudo chown -R spark:spark /opt/spark-$SPARK_VERSION-bin-hadoop$HADOOP_VERSION
+sudo chown -h spark:spark /opt/spark  # 修复符号链接权限
+
+# 步骤6：配置环境变量（全局生效，包括 spark 用户）
+echo "步骤6：配置环境变量"
 cat << EOF | sudo tee -a /etc/profile
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export SPARK_HOME=/opt/spark
@@ -33,9 +43,9 @@ source /etc/profile
 echo "Spark 版本："
 spark-submit --version
 
-# 步骤5：配置 Spark Master
-echo "步骤5：配置 Spark Master"
-sudo mkdir -p /opt/spark/conf
+# 步骤7：配置 Spark Master（以 spark 用户身份）
+echo "步骤7：配置 Spark Master"
+sudo -u spark mkdir -p /opt/spark/conf  # 用 spark 用户创建配置目录
 cat << EOF | sudo tee /opt/spark/conf/spark-env.sh
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export SPARK_MASTER_HOST=$(hostname -i)
@@ -43,11 +53,12 @@ export SPARK_MASTER_PORT=7077
 export SPARK_WORKER_MEMORY=2g
 export SPARK_WORKER_CORES=1
 EOF
+sudo chown spark:spark /opt/spark/conf/spark-env.sh  # 确保权限正确
 
-# 步骤6：启动 Spark Master
-echo "步骤6：启动 Spark Master"
-sudo $SPARK_HOME/sbin/start-master.sh
+# 步骤8：以 spark 用户启动 Spark Master
+echo "步骤8：启动 Spark Master（spark 用户）"
+sudo -u spark $SPARK_HOME/sbin/start-master.sh
 echo "Spark Master 启动状态："
-sudo $SPARK_HOME/sbin/master-status.sh
+ps -ef | grep -i "spark\.master" | grep -v grep  # 检查进程是否以 spark 用户运行
 
 echo "===== Spark Master 安装完成 ====="
