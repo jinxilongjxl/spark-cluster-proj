@@ -21,7 +21,6 @@ echo "步骤3：安装Spark 3.5.7"
 SPARK_HOME="/home/spark/spark"
 SPARK_TAR="spark-3.5.7-bin-hadoop3.tgz"
 SPARK_URL="https://dlcdn.apache.org/spark/spark-3.5.7/$SPARK_TAR"
-# 备用源（国内加速）
 BACKUP_URL="https://mirrors.aliyun.com/apache/spark/spark-3.5.7/$SPARK_TAR"
 
 if [ ! -d "$SPARK_HOME" ]; then
@@ -41,7 +40,7 @@ if [ ! -d "$SPARK_HOME" ]; then
       exit 1
     fi
     mv spark-3.5.7-bin-hadoop3 spark
-    rm -f $SPARK_TAR  # 清理安装包
+    rm -f $SPARK_TAR
     echo '✅ Spark安装成功'
   "
 else
@@ -49,17 +48,19 @@ else
 fi
 chown -R spark:spark /home/spark/spark
 
-# 4. 配置环境变量
-echo "步骤4：配置环境变量"
+# 4. 配置**永久生效**的环境变量（写入.bashrc）
+echo "步骤4：配置永久环境变量"
 su - spark -c "
   cat >> ~/.bashrc << 'EOF'
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export SPARK_HOME=/home/spark/spark
 export PATH=\$PATH:\$SPARK_HOME/bin:\$SPARK_HOME/sbin
 EOF
+  # 强制加载环境变量（确保当前会话生效）
+  source ~/.bashrc
 "
 
-# 5. 配置spark-env.sh（显式导出SPARK_HOME，确保路径正确）
+# 5. 配置spark-env.sh（显式导出所有变量）
 echo "步骤5：配置spark-env.sh"
 su - spark -c "
   export SPARK_HOME=/home/spark/spark
@@ -82,18 +83,20 @@ su - spark -c "
   chmod 600 ~/.ssh/authorized_keys
 "
 
-# 7. 启动Spark Worker进程
+# 7. 启动Spark Worker（**显式加载环境变量**，确保路径正确）
 echo "步骤7：启动Spark Worker"
 su - spark -c "
-  # 获取Master节点IP
+  # 强制加载.bashrc中的环境变量
+  source ~/.bashrc
+  # 获取Master IP（依赖GCP内部DNS解析）
   MASTER_IP=\$(nslookup spark-master | grep 'Address: ' | tail -n 1 | awk '{print \$2}')
   if [ -z \"\$MASTER_IP\" ]; then
-    echo '❌ 无法解析spark-master的IP，请检查DNS或手动指定Master IP'
+    echo '❌ 无法解析spark-master的IP，手动指定Master IP后重试'
     exit 1
   fi
   echo '🔗 连接到Master节点：\$MASTER_IP:7077'
   \$SPARK_HOME/sbin/start-worker.sh spark://\$MASTER_IP:7077
-  echo '✅ Spark Worker启动命令已执行，可通过jps或日志检查进程状态'
+  echo '✅ Spark Worker启动命令已执行，进程状态可通过jps或日志检查'
 "
 
 echo "===== Spark Worker安装及启动完成 ====="
