@@ -48,30 +48,28 @@ else
 fi
 chown -R spark:spark /home/spark/spark
 
-# 4. 配置**永久生效**的环境变量（写入.bashrc）
+# 4. 配置**永久生效**的全量环境变量（整合.bashrc和spark-env.sh）
 echo "步骤4：配置永久环境变量"
 su - spark -c "
   cat >> ~/.bashrc << 'EOF'
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export SPARK_HOME=/home/spark/spark
-export PATH=\$PATH:\$SPARK_HOME/bin:\$SPARK_HOME/sbin
-EOF
-  # 强制加载环境变量（确保当前会话生效）
-  source ~/.bashrc
-"
-
-# 5. 配置spark-env.sh（显式导出所有变量）
-echo "步骤5：配置spark-env.sh"
-su - spark -c "
-  export SPARK_HOME=/home/spark/spark
-  cp \$SPARK_HOME/conf/spark-env.sh.template \$SPARK_HOME/conf/spark-env.sh
-  cat >> \$SPARK_HOME/conf/spark-env.sh << 'EOF'
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export SPARK_MASTER_HOST=spark-master
 export SPARK_MASTER_PORT=7077
 export SPARK_WORKER_MEMORY=2g
 export SPARK_WORKER_CORES=1
+export PATH=\$PATH:\$SPARK_HOME/bin:\$SPARK_HOME/sbin
 EOF
+  # 强制加载环境变量（确保当前会话和后续SSH登录自动生效）
+  source ~/.bashrc
+"
+
+# 5. 验证环境变量加载
+echo "步骤5：验证环境变量"
+su - spark -c "
+  echo 'JAVA_HOME: ' \$JAVA_HOME
+  echo 'SPARK_HOME: ' \$SPARK_HOME
+  echo 'SPARK_MASTER_HOST: ' \$SPARK_MASTER_HOST
 "
 
 # 6. 准备SSH目录（等待Master公钥）
@@ -83,10 +81,10 @@ su - spark -c "
   chmod 600 ~/.ssh/authorized_keys
 "
 
-# 7. 启动Spark Worker（**显式加载环境变量**，确保路径正确）
+# 7. 启动Spark Worker（**显式使用完整路径**，确保命令可执行）
 echo "步骤7：启动Spark Worker"
 su - spark -c "
-  # 强制加载.bashrc中的环境变量
+  # 强制加载最新环境变量
   source ~/.bashrc
   # 获取Master IP（依赖GCP内部DNS解析）
   MASTER_IP=\$(nslookup spark-master | grep 'Address: ' | tail -n 1 | awk '{print \$2}')
@@ -94,8 +92,9 @@ su - spark -c "
     echo '❌ 无法解析spark-master的IP，手动指定Master IP后重试'
     exit 1
   fi
-  echo '🔗 连接到Master节点：\$MASTER_IP:7077'
-  \$SPARK_HOME/sbin/start-worker.sh spark://\$MASTER_IP:7077
+  echo '🔗 连接到Master节点：\$MASTER_IP:\$SPARK_MASTER_PORT'
+  # 显式使用完整路径启动
+  \$SPARK_HOME/sbin/start-worker.sh spark://\$MASTER_IP:\$SPARK_MASTER_PORT
   echo '✅ Spark Worker启动命令已执行，进程状态可通过jps或日志检查'
 "
 
