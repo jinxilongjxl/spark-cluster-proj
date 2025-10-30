@@ -15,32 +15,20 @@ variable "zone" {
   default     = "us-central1-a"
 }
 
-variable "master_machine_type" {
-  description = "Master 节点机器类型"
-  type        = string
-  default     = "n1-standard-2"
-}
-
-variable "worker_machine_type" {
-  description = "Worker 节点机器类型"
-  type        = string
-  default     = "n1-standard-2"
-}
-
 variable "worker_count" {
   description = "Worker 节点数量"
   type        = number
   default     = 2
 }
 
-variable "network_name" {
-  description = "VPC 网络名称"
-  type        = string
-  default     = "spark-network"
+variable "allowed_source_ips" {
+  description = "允许访问 Web UI 的源 IP 段"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]  # 生产环境请限制为具体 IP
 }
 
-variable "subnet_name" {
-  description = "子网名称"
+variable "local_ssh_public_key_path" {
+  description = "本地 SSH 公钥路径（~/.ssh/id_rsa.pub）"
   type        = string
-  default     = "spark-subnet"
+  default     = "~/.ssh/id_rsa.pub"
 }
