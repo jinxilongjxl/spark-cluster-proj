@@ -68,8 +68,8 @@ su - spark -c "
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export SPARK_MASTER_HOST=\$(hostname -i)
 export SPARK_MASTER_PORT=7077
-export SPARK_WORKER_MEMORY=2g
-export SPARK_WORKER_CORES=1
+export SPARK_WORKER_MEMORY=6g
+export SPARK_WORKER_CORES=2
 EOF
 "
 
