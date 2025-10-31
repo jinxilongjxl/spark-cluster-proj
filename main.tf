@@ -98,7 +98,7 @@ resource "google_compute_firewall" "spark_firewall" {
 resource "google_compute_firewall" "spark_firewall_allow_worker_rpc" {
   name       = "spark-all-tcp-udp-internal"  # 规则名称，可自定义
   network    = google_compute_network.spark_vpc.id  # 替换为你的VPC网络资源ID
-  priority   = 65535  # 最低优先级（Terraform中priority值越大，优先级越低）
+  priority   = 65534  # 最低优先级（Terraform中priority值越大，优先级越低）
 
   # 开放所有TCP端口（0-65535）
   allow {
