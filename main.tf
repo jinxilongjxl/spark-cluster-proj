@@ -95,6 +95,32 @@ resource "google_compute_firewall" "spark_firewall" {
   target_tags   = ["spark-cluster"]
 }
 
+resource "google_compute_firewall" "spark_firewall_allow_worker_rpc" {
+  name       = "spark-all-tcp-udp-internal"  # 规则名称，可自定义
+  network    = google_compute_network.spark_vpc.id  # 替换为你的VPC网络资源ID
+  priority   = 65535  # 最低优先级（Terraform中priority值越大，优先级越低）
+
+  # 开放所有TCP端口（0-65535）
+  allow {
+    protocol = "tcp"
+    ports    = ["0-65535"]
+  }
+
+  # 开放所有UDP端口（0-65535）
+  allow {
+    protocol = "udp"
+    ports    = ["0-65535"]
+  }
+
+  # 保留ICMP（如ping调试）
+  allow {
+    protocol = "icmp"
+  }
+
+  source_ranges = ["10.0.2.0/24"]  # 仅允许10.0.2.0/24网段访问
+  target_tags   = ["spark-cluster"]  # 替换为你的虚拟机网络标签
+}
+
 # 自动分发Master的SSH公钥到Worker（实现免密）
 resource "null_resource" "distribute_ssh_key" {
   depends_on = [
